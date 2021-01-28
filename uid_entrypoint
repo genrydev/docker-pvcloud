@@ -1,0 +1,15 @@
+#!/bin/sh
+if [ ! -z $DEBUG ]
+then
+	NAME=$(whoami)
+	echo $0 - Debug.. ${NAME} 
+fi
+HOME=/var/ansible
+if ! whoami &> /dev/null; then
+  if [ ! -z $DEBUG ]; then echo "DEBUG: no existe el usuario";fi 
+  if [ -w /etc/passwd ]; then
+    if [ ! -z $DEBUG ]; then echo "DEBUG: agregando el usuario $(id -u)";fi
+    echo "${USER_NAME:-default}:x:$(id -u):0:${USER_NAME:-default} user:${HOME}:/sbin/nologin" >> /etc/passwd
+  fi
+fi
+exec "$@"

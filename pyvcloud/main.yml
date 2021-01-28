@@ -1,0 +1,50 @@
+# Copyright © 2018 VMware, Inc. All Rights Reserved.
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# Variables:
+#            vapp_name: Nombre de la VAPP
+#            vm_name:   Nombre de la VM
+---
+
+- name: vCloudDirectorAnsible
+  hosts: localhost
+  environment:
+    env_user: arnaldocastro
+    env_password: password
+    env_host: gestion.nube.red.uy
+    env_org: 0102agesic-diseno
+    env_api_version: 27.0
+    env_verify_ssl_certs: false
+
+  tasks:
+       - name: create vapp
+         vcd_vapp:
+           vapp_name: "{{ vapp_name }}"
+           #template_name: "accsatestvapp"
+           #catalog_name: "accsatestcatalog"
+           vdc: "01Test-0102AGESIC-DISENO-CL3"
+           description: ""
+           fence_mode: "bridged"
+           ip_allocation_mode: 'dhcp'
+           deploy: true
+           accept_all_eulas: false
+           network: "SAE-BD-NET"
+           hostname: "accsa-host"
+           network_adapter_type: "VMXNET"
+           state: "present"
+
+       - name: create vapp vm from catalog
+         vcd_vapp_vm:
+           target_vm_name: "{{ vm_name }}"
+           target_vapp: "{{ vapp_name }}"
+           source_vdc: "01Test-0102AGESIC-DISENO-CL3"
+           target_vdc: "01Test-0102AGESIC-DISENO-CL3"
+           source_catalog_name: "accsatestcatalog"
+           source_template_name: "accsatestvapp"
+           source_vm_name: "accsa-vm"
+           hostname: "accsa-vm-hostname"
+           ip_allocation_mode: "dhcp"
+           all_eulas_accepted: "true"
+           network: "SAE-BD-NET"
+           deploy: false
+           state: "present"

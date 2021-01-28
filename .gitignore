@@ -1,0 +1,7 @@
+.*.swap
+*.swap
+*.zip
+*.tgz
+*.tar
+*.gz
+pyvcloud-old/*
