@@ -5,7 +5,7 @@ FROM python:3.6-alpine
 #ARG GITLAB_PASSWORD
 
 # Install new packages
-RUN apk add --update build-base python-dev py-pip jpeg-dev zlib-dev libffi-dev openssl-dev git openssh-client sshpass libxml2-dev libxslt-dev
+RUN apk add --update build-base python3.6-dev py-pip jpeg-dev zlib-dev libffi-dev openssl-dev git openssh-client sshpass libxml2-dev libxslt-dev
 
 # Upgrade pip
 RUN pip install --upgrade pip
