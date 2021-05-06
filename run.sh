@@ -5,7 +5,7 @@ echo ID=$(id -u)
 
 if [ -z "$ANSIBLE_PLAYBOOK" ]
 then
-   ANSIBLE_PLAYBOOK = "main-test.yml"
+   ANSIBLE_PLAYBOOK = "main-ansible-test.yml"
 fi
 echo ANSIBLE_PLAYBOOK=${ANSIBLE_PLAYBOOK}
 
