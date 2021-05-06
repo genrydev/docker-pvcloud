@@ -42,7 +42,7 @@ WORKDIR /var/ansible
 COPY run.sh /var/ansible
 COPY uid_entrypoint /var/ansible
 # Copy test playbook
-COPY main-ansible.yml /var/ansible/pyvcloud
+COPY test-ansible.yml /var/ansible/pyvcloud
 
 RUN chmod -R u+x,g+x /var/ansible/uid_entrypoint /var/ansible/run.sh && chgrp -R 0 /var/ansible && chmod -R g=u /var/ansible /etc/passwd
 
