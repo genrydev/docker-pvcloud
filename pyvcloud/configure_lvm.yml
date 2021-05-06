@@ -1,0 +1,60 @@
+- name: "Configure Filesystem and mount on directory"
+  hosts: "accsa-vm-01"
+  vars:
+    hdd: "/dev/sdb"
+    vg_name: "vg_example"
+    #filesystem_mkfs_opts: "-n ftype=1"
+    #mount_options: defaults
+    lvm_volumes:
+    #- { vg_name: "{{ vg_name }}", lv_name: "lv_pgdata", size: "1g", fstype: "xfs", mount: "/srv/pgdata", owner: "root", group: "root", mode: "0755" }
+    #- { vg_name: "{{ vg_name }}", lv_name: "lv_archivedlogs", size: "1g", fstype: "xfs", mount: "/srv/archivedlogs", owner: "root", group: "root", mode: "0755" }
+    #- { vg_name: "{{ vg_name }}", lv_name: "lv_backups", size: "1g", fstype: "ext4", mount: "/srv/backups", owner: "root", group: "root", mode: "0755" }
+    - { vg_name: "{{ vg_name }}", lv_name: "lv_data", size: "512", fstype: "xfs", mount: "/srv/example", owner: "example", group: "example", mode: "0755" }
+  
+  tasks:
+  - name: "Create the {{ vg_name }} Volume Group"
+    lvg:
+      pvs: "{{ hdd }}"
+      vg: "{{ vg_name }}"
+      force: no
+      state: present
+  
+  - name: "Create a Logical Volume with disk {{ hdd }}" 
+    lvol:
+      vg: "{{ item.vg_name }}"
+      lv: "{{ item.lv_name }}"
+      size: "{{ item.size }}"
+    with_items: "{{ lvm_volumes }}"
+    loop_control:
+      label: "{{ item.lv_name }} {{ item.size }}"
+  
+  - name: Format Logical Volume whith defined filesystem type
+    filesystem:
+      fstype: "{{ item.fstype | default ('xfs') }}"
+      dev: "/dev/{{ item.vg_name }}/{{ item.lv_name }}"
+      #opts: "{{ filesystem_mkfs_opts | default(omit) }}"
+    loop: "{{ lvm_volumes }}"
+    loop_control:
+      label: "{{ item.lv_name }} {{ item.fstype }}"
+ 
+#  - name: Ensure mount paths permissions
+#    file:
+#      path: "{{ item.mount }}"
+#      state: directory
+#      owner: "{{ item.owner | default ('root') }}"
+#      group: "{{ item.group | default ('root') }}"
+#      mode: "{{ item.mode | default ('0755') }}"
+#    loop: "{{ lvm_volumes }}"
+#    loop_control:
+#      label: "{{ item.mount }} {{ item.owner }}:{{ item.group }} {{ item.mode }}"
+
+  - name: Mount volumes and write on /etc/fstab
+    mount:
+      name: "{{ item.mount }}"
+      src: "/dev/{{ item.vg_name }}/{{ item.lv_name }}"
+      fstype: "{{ item.fstype | default ('xfs') }}"
+      state: mounted
+      #opts: "{{ mount_options | default('defaults') }}"
+    loop: "{{ lvm_volumes }}"
+    loop_control:
+      label: "/dev/{{ item.vg_name }}/{{ item.lv_name }} {{ item.mount }}"  

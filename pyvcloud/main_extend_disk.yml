@@ -1,0 +1,16 @@
+#####################################################################################
+## Play: extend filesystem size 
+## Exec: ansible-playbook main-extend.yml --extra-vars='{"mounted":"", "size":""}'
+## Required vars:
+##  - mounted
+##  - size
+#####################################################################################
+---
+- name: "Run tasks inside host ({{ inventory }})"
+  import_playbook: work_with_lvm.yml
+
+#- name: "Run tasks on vCloud Director"
+#  import_playbook: work_with_vcd.yml
+
+#- name: "Run tasks inside host ({{ inventory }}) to extend LVM"
+#  import_playbook: work_post_vcd.yml

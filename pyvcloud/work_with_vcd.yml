@@ -1,0 +1,98 @@
+---
+- name: "Ansible-Playbook: work with vCloud Director and extend hdd"
+  hosts: "localhost"
+  connection: local
+  vars:
+    vcloud_director_username: "arnaldocastro"
+    vcloud_director_password: "accsa-2020"
+    vcloud_director: "geo-te.nube.red.uy"
+    vcloud_director_org: "AGESIC-DISENO"
+    vcloud_vmname: "accsa-vm-01"
+    vcloud_api_version: "34.0"
+  
+  tasks:
+    - name: Include vars
+      include_vars:
+        file: "all_vars.yml"
+        
+    ## Detenemos la ejecución del play si desde el anterior ya se amplió el lvm correctamente
+    - meta: end_host
+      when: hostvars['vcd_hdd_selected']['finish']
+
+    ## Buscamos los datos de la vm a partir del nombre en el vcloud director, este módulo devuelve un arreglo (1 o más vms encontradas)
+    - name: "Find vm"
+      vcd_api:
+        host: "{{ vcloud_director }}"
+        org: "{{ vcloud_director_org }}"
+        user: "{{ vcloud_director_username }}"
+        password: "{{ vcloud_director_password }}"
+        api_version: "{{ vcloud_api_version }}"
+        vm: "{{ vcloud_vmname }}"
+        action: "vm_info" 
+      register: vm_result
+    
+    ## Mostramos información encontrada en caso de que exista una o más vms
+    - name: Display found information before increase
+      debug:
+        msg: 
+        - "HOST: {{ vcloud_director }}"
+        - "ORG: {{ vcloud_director_org }}"
+        - "VDC: {{ vm.vdc.name }}, Storage={{ vm.storage.name }}, free={{ ((vm.storage.free | int ) / 1024 ) | int }}G"
+        - "VAPP: {{ vm.vapp.name }}"
+        - "VM: {{ vm.name }}"
+        - "HDD: {{ hostvars['vcd_hdd_selected']['iscsi'] }} = {{ hostvars['vcd_hdd_selected']['origin_size'] }}"
+        - "Upgrade: {{ hostvars['vcd_hdd_selected']['value'] }} with +{{ (( hostvars['vcd_hdd_selected']['size_update'] | int ) / 1024) | int }}G"
+      with_items: "{{ vm_result.json }}"
+      loop_control:
+        loop_var: vm
+        label: "{{ vm.name }}"
+    
+    ## Detenemos la ejecución del play si encontramos más de una vm
+    - meta: end_host
+      when: (vm_result.json | length) != 1
+    
+    ## Aumentamos el tamaño del disco presentado en la vm relacionado con el punto de montaje LVM interno en el host, si hay capacidad en la política de## almacenamiento correspondiente
+    - name: "Increase {{ hostvars['vcd_hdd_selected']['value'] }} on {{ vm_name.stdout }}"
+      vcd_vm:
+        host: "{{ vcloud_director }}"
+        org: "{{ vcloud_director_org }}"
+        user: "{{ vcloud_director_username }}"
+        password: "{{ vcloud_director_password }}"
+        api_version: "{{ vcloud_api_version }}"
+        verify_ssl_certs: false
+        vm: "{{ vm.name }}"
+        vapp: "{{ vm.vapp.name }}"
+        vdc: "{{ vm.vdc.name }}"
+        disks:
+        - name: "{{ hostvars['vcd_hdd_selected']['value'] }}"
+          size: "{{ hostvars['vcd_hdd_selected']['size_update'] }}"
+          origin_size: "{{ hostvars['vcd_hdd_selected']['origin_size'] }}"
+      register: kh_vcd_vm
+      when: ( vm.storage.free | int ) > ( hostvars['vcd_hdd_selected']['size_update'] | int )
+      with_items: "{{ vm_result.json }}"
+      loop_control:
+        loop_var: vm
+        label: " vapp_name => {{ vm.vapp.name }} and vm_name => {{ vm.name }}"
+    
+    ## Mostramos resultado de la tarea anterior
+    - name: "Show result from update vHDD on {{ vm_name.stdout }}"
+      debug:
+        msg: "{{ item.msg }}"
+      when: ( item.vm.storage.free | int ) > ( hostvars['vcd_hdd_selected']['size_update'] | int )
+      with_items: "{{ kh_vcd_vm.results }}"
+      loop_control:
+        label: " vapp_name => {{ item.vm.vapp.name }} and vm_name => {{ item.vm.name }}"
+    
+    ## Eliminamos los archivos temporales que utiliza pyvcloud en el directorio
+    - name: Delete tmp files vcd*cd .log on /opt/ansible-module-vcloud-director
+      shell: |
+        find /opt/ansible-module-vcloud-director -iname "vcd*.log" -exec rm -f {} \; 
+
+    - name: Set option to stop next playbook if not increase
+      add_host:
+        name: "vcd_hdd_selected"
+        finish: True
+      when: item.changed == false
+      with_items: "{{ kh_vcd_vm.results }}"
+      loop_control:
+        label: " vapp_name => {{ item.vm.vapp.name }} and vm_name => {{ item.vm.name }}"

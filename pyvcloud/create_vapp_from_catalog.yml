@@ -1,0 +1,39 @@
+# Copyright © 2018 VMware, Inc. All Rights Reserved.
+# SPDX-License-Identifier: BSD-2-Clause
+
+---
+
+- name: vCloudDirectorAnsible
+  hosts: localhost
+  environment:
+    env_user: arnaldocastro
+    env_password: password
+    env_host: gestion.nube.red.uy
+    env_org: 0102agesic-diseno
+    env_api_version: 27.0
+    env_verify_ssl_certs: false
+
+  tasks:
+       - name: create vapp
+         vcd_vapp:
+           vapp_name: "newvapp"
+           template_name: "accsatestvapp"
+           catalog_name: "accsatestcatalog"
+           vdc: "01Test-0102AGESIC-DISENO-CL3"
+           description: ""
+           fence_mode: "bridged"
+           ip_allocation_mode: 'dhcp'
+           deploy: true
+          #  power_on: true
+           accept_all_eulas: false
+          #  memory: 51200
+          #  cpu: 1000
+          #  disk_size: 512000
+          #  vmpassword: "ok"
+          #  vm_name: "accsa_test_vm_from_catalog"
+           network: "SAE-BD-NET"
+           hostname: "accsa-host"
+#            ip_address: "192.168.4.10"
+          #  storage_profile: "Standard"
+           network_adapter_type: "VMXNET"
+           state: "present"

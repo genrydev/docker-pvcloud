@@ -1,0 +1,39 @@
+---
+- name: "Get filesystem from mounted {{ mounted }}"
+  shell: >
+    df -hTP {{ mounted }} |tail -1| cut -d' ' -f1
+  register: filesystem
+
+- name: "Stop running plays if {{ mounted }} doesn't exist"
+  include_tasks: stop_running.yml
+  when: ("Not a directory" in filesystem.stderr)
+
+- name: "Get VGName from filesystem {{ filesystem.stdout }}"
+  shell: >
+    lvdisplay -m {{ filesystem.stdout }}|grep -i "VG Name"|sed "s/ //g;s/VGName//g"
+  register: vg_name
+
+- name: "Get LVName from filesystem {{ filesystem.stdout }}"
+  shell: >
+    lvdisplay -m {{ filesystem.stdout }}|grep -i "LV Name"|sed "s/ //g;s/LVName//g"
+  register: lv_name
+
+- name: "Get assigned hdd to VG {{ vg_name.stdout }}"
+  shell: >
+    pvs |grep -i {{ vg_name.stdout }}
+  register: hdd_result
+
+- name: "Loop hdd_list from {{ hdd_result.stdout_lines | length }} hdd found and run sfdisk, pvresize"
+  shell: |
+    for i in /sys/class/scsi_host/*/scan; do echo '- - -' > $i; done
+    sfdisk -R {{ item.split()[0] }}
+    pvresize {{ item.split()[0] }}
+  with_items: "{{ hdd_result.stdout_lines }}"
+  loop_control:
+    label: "{{ item.split()[1] }} related with {{ item.split()[0] }}"
+  register: hdd_array
+
+- name: "Get vFree on {{ vg_name.stdout }}"
+  shell: >
+    vgs --unit 'm'|grep -i {{ vg_name.stdout }}|awk '{print $7}'|sed 's/\./,/g'|cut -d',' -f1|sed 's/>//g; s/<//g'
+  register: vg_vfree

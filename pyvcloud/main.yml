@@ -1,50 +1,85 @@
 # Copyright © 2018 VMware, Inc. All Rights Reserved.
 # SPDX-License-Identifier: BSD-2-Clause
-#
-# Variables:
-#            vapp_name: Nombre de la VAPP
-#            vm_name:   Nombre de la VM
+
 ---
 
 - name: vCloudDirectorAnsible
   hosts: localhost
   environment:
     env_user: arnaldocastro
-    env_password: password
-    env_host: gestion.nube.red.uy
-    env_org: 0102agesic-diseno
-    env_api_version: 27.0
+    env_password: accsa-2020
+    env_host: geo-te.nube.red.uy
+    env_org: AGESIC-DISENO
+    env_api_version: 34.0
     env_verify_ssl_certs: false
 
   tasks:
-       - name: create vapp
-         vcd_vapp:
-           vapp_name: "{{ vapp_name }}"
-           #template_name: "accsatestvapp"
-           #catalog_name: "accsatestcatalog"
-           vdc: "01Test-0102AGESIC-DISENO-CL3"
-           description: ""
-           fence_mode: "bridged"
-           ip_allocation_mode: 'dhcp'
-           deploy: true
-           accept_all_eulas: false
-           network: "SAE-BD-NET"
-           hostname: "accsa-host"
-           network_adapter_type: "VMXNET"
-           state: "present"
+    - name: create vapp vm from catalog
+      vcd_vapp_vm:
+        target_vm_name: "{{ vm_name }}"
+        target_vapp: "{{ vapp_name }}"
+        source_vdc: "01-TEST-AGESIC-DISENO-T01"
+        target_vdc: "01-TEST-AGESIC-DISENO-T01"
+        source_catalog_name: "accsa-catalog"
+        source_template_name: "accsa-vapp-template"
+        source_vm_name: "vm-template"
+        hostname: "accsa-vm-hostname"
+        ip_allocation_mode: "POOL"
+        all_eulas_accepted: "true"
+        network: "10.236.50-AGESIC-DISENO"
+        deploy: false
+        state: "present"
 
-       - name: create vapp vm from catalog
-         vcd_vapp_vm:
-           target_vm_name: "{{ vm_name }}"
-           target_vapp: "{{ vapp_name }}"
-           source_vdc: "01Test-0102AGESIC-DISENO-CL3"
-           target_vdc: "01Test-0102AGESIC-DISENO-CL3"
-           source_catalog_name: "accsatestcatalog"
-           source_template_name: "accsatestvapp"
-           source_vm_name: "accsa-vm"
-           hostname: "accsa-vm-hostname"
-           ip_allocation_mode: "dhcp"
-           all_eulas_accepted: "true"
-           network: "SAE-BD-NET"
-           deploy: false
-           state: "present"
+
+#    - name: read disks
+#      vcd_vapp_vm_disk:
+#        vm_name: "vm-demo-21-12-2020"
+#        vapp: "vapp-demo-21-12-2020"
+#        vdc: "01-TEST-AGESIC-DISENO-T01"
+#        operation: "read" 
+        
+#    - name: create vm disk
+#      vcd_vapp_vm_disk:
+#       vm_name: "vm-demo-21-12-2020"
+#       vapp: "vapp-demo-21-12-2020"
+#       vdc: "01-TEST-AGESIC-DISENO-T01"
+#       disks:
+#        - size: 1024
+#          controller: VirtualSCSI
+#          name: "Hard disk 2"
+#       state: "present"             
+
+    # - name: update disk
+    #   vcd_vapp_vm_disk:
+    #     vm_name: "vm-demo-21-12-2020"
+    #     vapp: "vapp-demo-21-12-2020"
+    #     vdc: "01-TEST-AGESIC-DISENO-T01"
+    #     disks:
+    #       - name: Hard disk 2
+    #         size: 4096
+    #     state: "update"
+        
+#    - name: delete vm disk
+#      vcd_vapp_vm_disk:
+#       vm_name: "vm-demo-21-12-2020"
+#       vapp: "vapp-demo-21-12-2020"
+#       vdc: "01-TEST-AGESIC-DISENO-T01"
+#       disks:
+#         - name: 'Hard disk 2'
+#       state: "absent"
+  
+#       - name: create vapp
+#         vcd_vapp:
+#           vapp_name: "vapp-demo-21-12-2020"
+#           #template_name: "accsatestvapp"
+#           #catalog_name: "accsatestcatalog"
+#           vdc: "01-TEST-AGESIC-DISENO-T01"
+#           description: ""
+#           fence_mode: "bridged"
+#           ip_allocation_mode: 'POOL'
+#           deploy: true
+#           accept_all_eulas: false
+#           network: "10.236.50-AGESIC-DISENO"
+#           hostname: "accsa-hostname"
+#           network_adapter_type: "VMXNET3"
+#           state: "present"

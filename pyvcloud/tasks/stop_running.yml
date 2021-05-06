@@ -1,0 +1,7 @@
+---
+- name: Set option to stop next playbook
+  add_host:
+    name: "vcd_hdd_selected"
+    finish: True
+
+- meta: end_host

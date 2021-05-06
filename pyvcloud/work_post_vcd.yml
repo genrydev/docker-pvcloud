@@ -1,0 +1,18 @@
+---
+  - name: "Ansible-Playbook: Work with lvm filesystem"
+    hosts: "accsa-vm-01"
+    become: True
+    tasks:
+      - name: Include vars
+        include_vars:
+          file: "all_vars.yml"
+              
+      - meta: end_host
+        when: hostvars['vcd_hdd_selected']['finish']
+        
+      - name: "Include filesystem information"
+        include_tasks: tasks/get_fs_info.yml
+    
+      - name: "Include tasks to extend Logical Volume VFree={{ vg_vfree.stdout | int }} and size={{ size }}"
+        include_tasks: tasks/extend_lv.yml
+        when: ( vg_vfree.stdout | int + 10 ) >= ( size | int )

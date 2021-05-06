@@ -1,0 +1,46 @@
+---
+- name: "Show vfree space on {{ vg_name.stdout }}"
+  debug: 
+    msg: "{{ vg_vfree.stdout | int }}"
+
+- name: "Get current status"
+  shell: |
+    df -hTP {{ mounted }}
+  register: status
+
+- name: "Show current status"
+  debug:
+    msg: "{{status.stdout_lines}}"
+
+- name: "Extend the logical volume to 100%VG"
+  shell: |
+    lvextend -l100%VG {{ filesystem.stdout }}
+  when: ( vg_vfree.stdout | int) <= ( size | int )
+
+- name: "Extend the logical volume with +{{ size }}M"
+  shell: |
+    lvextend -L +{{ size }}M {{ filesystem.stdout }}
+  when: ( vg_vfree.stdout | int) > ( size | int )
+
+- name: "Resize filesystem {{ size }}M with resize2fs or xfs_growfs command"
+  shell: |
+    fstype=$(df -hTP {{ mounted }} |tail -1|awk '{print $2}');
+    if [ $fstype == "xfs" ]; then 
+      xfs_growfs {{ filesystem.stdout }};
+    else 
+      resize2fs {{ filesystem.stdout }};
+    fi
+
+- name: "Get final status"
+  shell: |
+    df -hTP {{ mounted }}
+  register: status
+
+- name: "Show final status"
+  debug:
+    msg: "{{status.stdout_lines}}"
+
+- name: Set option to stop next playbook
+  add_host:
+    name: "vcd_hdd_selected"
+    finish: True

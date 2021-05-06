@@ -1,0 +1,48 @@
+---
+- name: "Set hdd_list var with {{ hdd_result.stdout_lines | length }} hdd found and get device"
+  set_fact:
+    hdd_list: "{{ item.split()[0] }}"
+  with_items: "{{ hdd_result.stdout_lines }}"
+  loop_control:
+    label: "{{ item.split()[1] }} related with {{ item.split()[0] }}"
+  register: hdd_array
+
+- name: "Get connected iscsi hdd list"
+  shell: >
+    fdisk -l /dev/sd?|grep -i "Disk /dev"|awk '{print $2}'|sed 's/\/dev\///g; s/://g'
+  register: connected_hdd
+
+- name: "Get connected iscsi hdd list size"
+  shell: >
+    fdisk -l /dev/sd?|grep -i "Disk /dev"|awk '{print $5}'
+  register: connected_hdd_size
+
+- debug: 
+    msg: "{{ hdd_array.results | map(attribute='ansible_facts.hdd_list') | list |last |regex_replace('/dev/','') }}"
+
+- debug: 
+    msg: "{{ connected_hdd.stdout_lines }}"
+
+- debug: 
+    msg: "size_update: {{ (size | int) + (vg_vfree.stdout | int) }}"
+
+- debug: 
+    msg: "origin_size: {{ (( connected_hdd_size.stdout_lines[0] | int ) / 1024 /1024) | int  }}"
+
+- name: Select disk to update on vCloud Director
+  add_host:
+    name: "vcd_hdd_selected"
+    position: "{{ index + 1 }}"
+    value: "Hard disk {{ index + 1 }}"
+    iscsi: "{{ item }}"
+    filesystem: "{{ filesystem }}"
+    vg_name: "{{ vg_name }}"
+    lv_name: "{{ lv_name }}"
+    size_update: "{{ (size | int) - (vg_vfree.stdout | int) }}"
+    origin_size: "{{ (( connected_hdd_size.stdout_lines[index] | int ) / 1024 /1024) | int  }}"
+    finish: False
+  when: item == (hdd_array.results | map(attribute='ansible_facts.hdd_list') | list |last |regex_replace('/dev/',''))
+  with_items: "{{ connected_hdd.stdout_lines }}"
+  loop_control:
+    label: "{{ item }}"
+    index_var: index
